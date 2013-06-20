@@ -1,0 +1,66 @@
+- hosts: webservers
+  user: ubuntu
+  sudo: True
+
+  vars:
+    delete_default_vhost: true
+    worker_processes: $ansible_processor_count
+    pid: /var/run/nginx.pid
+    worker_connections: 768
+    listen: "*:80"
+    server_name: davidbrenneman.com
+
+  tasks:
+    - name: install apt packages
+      action: apt pkg=$item state=installed
+      with_items:
+        - python-dev
+        - python-setuptools
+        - python-imaging
+        - git-core
+        - nginx
+
+    - name: install pip
+      action: easy_install name=pip
+
+    - name: install python libraries
+      action: pip name=$item state=present
+      with_items:
+        - supervisor
+        - uwsgi
+        - virtualenv
+
+    - name: write nginx.conf
+      action: template src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
+      notify:
+        - restart nginx
+
+    - name: delete default vhost
+      action: file path=/etc/nginx/sites-enabled/default state=absent
+      only_if: "$delete_default_vhost"
+      notify:
+        - restart nginx
+
+    - name: add nginx davidbrenneman.com vhost
+      action: template src=davidbrenneman.com.j2 dest=/etc/nginx/sites-available/davidbrenneman.com
+      notify:
+        - restart nginx
+
+    - name: link nginx davidbrenneman.com vhost in sites-enabled
+      action: file src=/etc/nginx/sites-available/davidbrenneman.com dest=/etc/nginx/sites-enabled/davidbrenneman.com state=link
+      notify:
+        - restart nginx
+
+    - name: create supervisord configuration directory
+      action: file dest=/etc/supervisor state=directory owner=root
+
+    - name: create supervisord configuration file
+      action: template src=supervisord.conf
+
+    - name: create web application directory
+      action: file dest=/srv/webapps state=directory
+
+
+  handlers:
+    - name: restart nginx
+      action: service name=nginx pattern=/etc/init.d/nginx state=restarted enabled=yes

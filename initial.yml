@@ -1,0 +1,25 @@
+- hosts: webservers
+
+  tasks:
+
+    - name: create admin group
+      action: group name=admin gid=1000 system=no
+
+    - name: create user(s)
+      action: user name=ubuntu group=admin shell=/bin/bash uid=1000
+
+    - name: setup authorized key(s)
+      action: authorized_key user=lex key='$FILE(/home/lex/.ssh/id_rsa.pub)'
+
+    - name: write the sudoers file
+      action: template src=templates/sudoers dest=/etc/sudoers.d/custom owner=root group=root mode=0400
+
+    - name: write the sshd_config file
+      action: template src=templates/sshd_config dest=/etc/ssh/sshd_config owner=root group=root mode=0644
+      notify:
+        - reload sshd
+
+  handlers:
+
+    - name: reload sshd
+      action: service name=ssh state=reloaded
