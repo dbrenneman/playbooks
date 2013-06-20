@@ -9,10 +9,10 @@
       action: user name=ubuntu group=admin shell=/bin/bash uid=1000
 
     - name: setup authorized key(s)
-      action: authorized_key user=lex key='$FILE(/home/lex/.ssh/id_rsa.pub)'
+      action: authorized_key user=ubuntu key='$FILE(/Users/david/.ssh/id_rsa.pub)'
 
     - name: write the sudoers file
-      action: template src=templates/sudoers dest=/etc/sudoers.d/custom owner=root group=root mode=0400
+      action: template src=templates/custom_sudo dest=/etc/sudoers.d/custom owner=root group=root mode=0400
 
     - name: write the sshd_config file
       action: template src=templates/sshd_config dest=/etc/ssh/sshd_config owner=root group=root mode=0644
